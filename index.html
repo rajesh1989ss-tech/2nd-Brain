@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1B1D">
+<title>Second Brain</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --paper:#E9EEED; --surface:#F7F9F8; --sunk:#DCE4E3;
+  --ink:#12343B; --ink-2:#4E666A; --line:#C3CFCE;
+  --signal:#E8B420; --signal-ink:#231C00; --signal-soft:#F6E3A6;
+  --rust:#A9412D; --rust-soft:#F3DDD7;
+  --stbd:#2B7556; --stbd-soft:#D6EBE1;
+  --blue:#2D5E8C;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="dark"]{
+  --paper:#0E1B1D; --surface:#152629; --sunk:#1D3236;
+  --ink:#D6E2E0; --ink-2:#8FA6A8; --line:#2B4347;
+  --signal:#D9A91C; --signal-ink:#1A1400; --signal-soft:#3B3212;
+  --rust:#E08A74; --rust-soft:#3A221D;
+  --stbd:#6CC39C; --stbd-soft:#18342A;
+  --blue:#86B4E0;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;background:var(--paper)}
+body{height:100%;margin:0;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%}
+header.top{display:flex;align-items:baseline;justify-content:space-between;padding:12px 18px 8px;border-bottom:1px solid var(--line);user-select:none}
+header.top b{font:700 22px/1 var(--cond);font-stretch:condensed}
+header.top span{font-size:13px;color:var(--ink-2)}
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.wrap{max-width:680px;margin:0 auto;padding:16px 18px 32px}
+nav.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--surface)}
+nav.tabs button{appearance:none;border:0;background:none;color:var(--ink-2);font:600 15px/1 var(--body);padding:14px 4px 13px;cursor:pointer;border-top:3px solid transparent}
+nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--signal)}
+h1{font:700 30px/1.05 var(--cond);font-stretch:condensed;margin:4px 0 6px}
+h2{font:600 19px/1.2 var(--cond);font-stretch:condensed;margin:24px 0 8px}
+p{margin:0 0 10px}
+.muted{color:var(--ink-2)} .small{font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:10px 14px;font-weight:600;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn.signal{background:var(--signal);border-color:var(--signal);color:var(--signal-ink)}
+.btn.warn{color:var(--rust);border-color:var(--rust)}
+.btn.link{border:0;background:none;padding:6px 0;min-height:0;color:var(--blue)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stack{display:grid;gap:10px}
+input[type=text],input[type=password],select,textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;color:var(--ink)}
+textarea{resize:vertical;min-height:130px;line-height:1.45;font-size:15px}
+.filepick{position:relative;overflow:hidden}
+.filepick input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+
+.trow,.hubrow{appearance:none;display:grid;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer;color:var(--ink)}
+.trow{grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 2px}
+.trow .t{font-weight:600;font-size:17px}
+.trow .m{font-size:13px;color:var(--ink-2)}
+.hubrow{grid-template-columns:minmax(0,1fr) 46px 42px 42px;gap:8px;align-items:center;padding:10px 0;font-size:15px}
+.hubrow.head{font-size:12px;color:var(--ink-2);font-weight:600;cursor:default}
+.hubrow .n{text-align:right;font-variant-numeric:tabular-nums}
+.score{font:700 34px/1 var(--cond);font-stretch:condensed;text-align:right;white-space:nowrap}
+.score small{font-size:15px;color:var(--ink-2);font-weight:600}
+.score.none{color:var(--ink-2);font-size:24px}
+.score.low{color:var(--rust)}
+.hero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:10px}
+.hero .score{font-size:60px}
+.trend{font-size:13px;color:var(--ink-2);margin-top:4px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 100px 3ch;gap:8px;align-items:center;font-size:14px;margin:5px 0}
+.bar i{display:block;height:8px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.bar i b{display:block;height:100%;background:var(--ink)}
+.bar .v{text-align:right;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 14px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.stats b{display:block;font:700 28px/1 var(--cond)}
+.stats span{font-size:13px;color:var(--ink-2)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.panel.next{border-left:5px solid var(--signal)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:1px 7px;border-radius:4px;border:1px solid currentColor;margin-right:4px;white-space:nowrap}
+.badge.r{color:var(--rust)} .badge.s{color:var(--ink-2)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.tg{font-size:13px;font-weight:500;padding:4px 11px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);color:var(--ink)}
+button.tg{cursor:pointer}
+button.tg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+ol.mis,ul.plain{margin:0;padding-left:22px}
+ol.mis li,ul.plain li{margin:0 0 10px}
+.mis .c{display:block;color:var(--stbd);font-weight:500}
+.mis .src{display:block;font-size:13px;color:var(--blue)}
+.mis .d{display:block;font-size:13px;color:var(--ink-2)}
+.layman{font-size:17px;line-height:1.55;white-space:pre-wrap}
+.sendbox{background:var(--signal-soft);border-radius:10px;padding:12px;margin:12px 0}
+.sendbox .muted{color:var(--ink)}
+.imp{border:1px solid var(--line);border-left-width:4px;border-radius:8px;padding:10px 12px;margin:0 0 8px;background:var(--surface);display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.imp.new{border-left-color:var(--stbd)} .imp.upd{border-left-color:var(--signal)} .imp.old{border-left-color:var(--rust)} .imp.note{border-left-color:var(--blue)}
+.imp input[type=checkbox]{width:22px;height:22px;margin:2px 0 0}
+.imp b{display:block}
+.imp .k{font-size:13px;color:var(--ink-2)}
+.imp select{margin-top:6px;padding:6px 8px}
+.notefile{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
+.notefile .k{font-size:13px;color:var(--ink-2)}
+.banner{background:var(--rust-soft);color:var(--rust);padding:10px 12px;border-radius:8px;margin-bottom:12px;font-weight:500}
+.note{background:var(--sunk);border-radius:8px;padding:10px 12px;font-size:15px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:8px;font-size:15px;max-width:90vw;z-index:30;box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.hidden{display:none!important}
+.viewer{position:fixed;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.viewer .vh{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.viewer .vh b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewer iframe{flex:1;border:0;width:100%;background:#fff}
+.lock{position:fixed;inset:0;z-index:40;background:var(--paper);display:grid;place-items:center;padding:24px}
+.lock .box{width:min(320px,100%);display:grid;gap:12px;text-align:center}
+.lock input{text-align:center;font-size:24px;letter-spacing:.3em}
+</style>
+</head>
+<body>
+<header class="top"><b id="brand" title="Triple-tap to lock">Second Brain</b><span id="status">Loading…</span></header>
+<main id="main"></main>
+<nav class="tabs" id="nav"></nav>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<div id="overlay"></div>
+
+<script>
+"use strict";
+const APP_VERSION = "1.0.0";
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k === "value") el.value = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) { if (c == null || c === false) continue; el.append(c instanceof Node ? c : document.createTextNode(String(c))); }
+  return el;
+}
+function today() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function isDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "").trim()); }
+function daysSince(iso) { if (!isDate(iso)) return null; return Math.max(0, Math.round((new Date(today() + "T00:00:00") - new Date(iso + "T00:00:00")) / 86400000)); }
+function slugify(s) { return (s || "topic").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 70) || "topic"; }
+function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+function arr(x) { return Array.isArray(x) ? x : []; }
+function strs(x) { return arr(x).map(v => String(v ?? "").trim()).filter(Boolean); }
+function num(x) { const n = Number(x); return Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n * 2) / 2)) : null; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+let toastTimer;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.remove("hidden"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), 3600); }
+
+/* ---------- storage: IndexedDB on phone/web, a JSON file beside the .exe on desktop ---------- */
+const DESKTOP = new URLSearchParams(location.search).has("desktop") || /SecondBrainDesktop/.test(navigator.userAgent);
+const deskReady = DESKTOP ? new Promise(res => { if (window.pywebview && window.pywebview.api && window.pywebview.api.load_data) res(); else window.addEventListener("pywebviewready", () => res()); }) : Promise.resolve();
+function idbOpen() { return new Promise((res, rej) => { const r = indexedDB.open("second-brain", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbGet(k) { const d = await idbOpen(); return new Promise((res, rej) => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); }
+async function idbSet(k, v) { const d = await idbOpen(); return new Promise((res, rej) => { const tx = d.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); }
+const Store = {
+  async load() { if (DESKTOP) { await deskReady; const t = await window.pywebview.api.load_data(); return t ? JSON.parse(t) : null; } return idbGet("db"); },
+  async save(db) { if (DESKTOP) { await deskReady; const ok = await window.pywebview.api.save_data(JSON.stringify(db)); if (!ok) throw new Error("save failed"); return; } return idbSet("db", db); }
+};
+function emptyDb() { return { app: "second-brain", schema: 1, topics: {}, notes: {}, settings: { theme: "dark", pinHash: null } }; }
+let saveTimer = null, saving = Promise.resolve();
+function persist() { clearTimeout(saveTimer); setStatus("Saving…"); saveTimer = setTimeout(flush, DESKTOP ? 0 : 250); }
+function flush() { clearTimeout(saveTimer); saveTimer = null; S.db.savedAt = new Date().toISOString(); saving = saving.then(() => Store.save(S.db)).then(() => setStatus("Saved"), e => { console.error(e); setStatus("Not saved"); toast("Couldn't save. Export a backup now."); }); return saving; }
+document.addEventListener("visibilitychange", () => { if (document.hidden && saveTimer) flush(); });
+function setStatus(t) { const s = $("#status"); if (s) s.textContent = t; }
+
+/* ---------- state ---------- */
+const S = { db: emptyDb(), view: "hub", topicId: null, q: "", hubTag: null, confirm: null, locked: false,
+  imp: { text: "", items: null, busy: false } };
+const topicList = () => Object.values(S.db.topics).sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+const notesFor = id => Object.values(S.db.notes).filter(n => n.topicId === id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+function interval(score) { if (score == null) return 0; if (score < 5) return 14; if (score < 7) return 30; if (score < 9) return 60; return 120; }
+function dueIn(t) { if (!t.lastReviewed || t.score == null) return 0; return interval(t.score) - daysSince(t.lastReviewed); }
+function needsAttention(t) { const ds = daysSince(t.lastReviewed); return t.score == null || t.score < 5 || (ds != null && ds >= 60); }
+function priority(t) {
+  let p = t.score == null ? 60 : (10 - t.score) * 6;
+  const ds = daysSince(t.lastReviewed); if (ds != null && ds >= 60) p += 50;
+  const d = dueIn(t); if (t.score != null && d <= 0) p += 30 + Math.min(-d, 60);
+  return p + arr(t.openMis).length * 4 + Math.min(arr(t.gaps).length, 8);
+}
+const ranked = () => topicList().slice().sort((a, b) => priority(b) - priority(a));
+function sortedNotes(t) { return arr(t.sessionNotes).filter(n => n && n.text).slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))); }
+function allTags() { const m = new Map(); topicList().forEach(t => arr(t.tags).forEach(g => { const k = g.toLowerCase(); if (!m.has(k)) m.set(k, g); })); return [...m.values()].sort((a, b) => a.localeCompare(b)); }
+function hasTag(t, g) { return arr(t.tags).some(x => x.toLowerCase() === String(g).toLowerCase()); }
+function findTopic(title, slug) {
+  const k = String(title || "").toLowerCase().trim();
+  return topicList().find(t => (k && (t.title || "").toLowerCase() === k) || (slug && (t.fileSlug === slug || slugify(t.title) === slug)));
+}
+
+/* ---------- card parsing (the chat card format) ---------- */
+function parseCards(md) {
+  const text = String(md || "").replace(/\r/g, "").replace(/^\s*```[a-z]*\s*$/gim, "");
+  const chunks = []; let cur = null;
+  for (const line of text.split("\n")) {
+    const m = /^#\s+(.+?)\s*$/.exec(line);
+    if (m) { cur = { title: m[1].trim(), lines: [] }; chunks.push(cur); } else if (cur) cur.lines.push(line);
+  }
+  return chunks.map(parseOne).filter(c => c && c.title);
+}
+function parseOne(ch) {
+  const c = { title: ch.title, score: null, lastReviewed: null, sessions: 0, tags: [], subScores: [], solid: [], openMis: [], fixedMis: [], gaps: [], layman: "", sources: [], sessionNotes: [], related: [] };
+  const secs = {}; let key = "_head";
+  for (const raw of ch.lines) {
+    const m = /^##\s+(.+?)\s*$/.exec(raw);
+    if (m) { key = m[1].toLowerCase(); secs[key] = secs[key] || []; continue; }
+    if (/^\s*---+\s*$/.test(raw)) continue;
+    (secs[key] = secs[key] || []).push(raw);
+  }
+  const head = (secs._head || []).join("\n"); let x;
+  if ((x = /Score:\s*([\d.]+)\s*\/\s*10/i.exec(head))) c.score = num(x[1]);
+  if ((x = /Last reviewed:\s*(\d{4}-\d{2}-\d{2})/i.exec(head))) c.lastReviewed = x[1];
+  if ((x = /Sessions:\s*(\d+)/i.exec(head))) c.sessions = parseInt(x[1]) || 0;
+  if ((x = /^\s*Tags:\s*(.+)$/im.exec(head))) c.tags = x[1].split(",").map(s => s.trim()).filter(Boolean);
+  const find = (...names) => { for (const k of Object.keys(secs)) if (names.some(n => k.startsWith(n))) return secs[k]; return []; };
+  const items = ls => { const out = []; for (const l of ls) { const b = /^\s*(?:[-*•]|\d+[.)])\s+(.*)$/.exec(l); if (b) out.push(b[1].trim()); else if (l.trim() && out.length) out[out.length - 1] += " " + l.trim(); } return out.filter(s => s && s !== "..." && s !== "…"); };
+  const field = (s, name) => { const r = new RegExp(name + "\\s*:\\s*([^|]*)", "i").exec(s); return r ? r[1].trim() : ""; };
+  c.subScores = items(find("sub-score", "sub score", "subscore")).map(s => { const i = s.lastIndexOf(":"); return i > 0 ? { name: s.slice(0, i).trim(), score: num(parseFloat(s.slice(i + 1))) } : null; }).filter(s => s && s.name);
+  c.solid = items(find("solid")); c.gaps = items(find("gap")); c.sources = items(find("source")); c.related = items(find("related"));
+  const since = c.lastReviewed || today();
+  c.openMis = items(find("open misconception")).map(s => {
+    if (/I said\s*:/i.test(s)) return { text: field(s, "I said"), correct: field(s, "Correct"), source: field(s, "Source"), since };
+    const k = s.search(/\bCorrect\s*:/i);
+    return k > 0 ? { text: s.slice(0, k).trim(), correct: s.slice(k).replace(/^Correct\s*:\s*/i, "").trim(), source: "", since } : { text: s, correct: "", source: "", since };
+  }).filter(m => m.text);
+  c.fixedMis = items(find("fixed misconception")).map(s => {
+    let d = ""; const dm = /^\((\d{4}-\d{2}-\d{2})\)\s*/.exec(s); if (dm) { d = dm[1]; s = s.slice(dm[0].length); }
+    if (/Was\s*:/i.test(s)) return { text: field(s, "Was"), correct: field(s, "Now"), fixedOn: d || today() };
+    const fm = /\(Fixed on (\d{4}-\d{2}-\d{2})\)/i.exec(s); if (fm) { d = d || fm[1]; s = s.replace(fm[0], "").trim(); }
+    const k = s.search(/\bCorrect\s*:/i);
+    return k > 0 ? { text: s.slice(0, k).trim(), correct: s.slice(k).replace(/^Correct\s*:\s*/i, "").trim(), fixedOn: d || today() } : { text: s, correct: "", fixedOn: d || today() };
+  }).filter(m => m.text);
+  c.sessionNotes = items(find("session note")).map(s => { const dm = /^\((\d{4}-\d{2}-\d{2})\)\s*(.*)$/.exec(s); return dm ? { date: dm[1], text: dm[2] } : { date: "", text: s }; }).filter(n => n.text);
+  c.layman = find("layman").map(l => l.trim()).filter(Boolean).join("\n");
+  const empty = c.score == null && !c.solid.length && !c.openMis.length && !c.gaps.length && !c.layman;
+  return empty ? null : c;
+}
+function cardMd(t) {
+  const L = [];
+  L.push("# " + t.title, "Score: " + (t.score ?? "–") + "/10 | Last reviewed: " + (t.lastReviewed || "never") + " | Sessions: " + (t.sessions || 0));
+  L.push("Tags: " + arr(t.tags).join(", "), "");
+  L.push("## Sub-scores", ...arr(t.subScores).map(s => "- " + s.name + ": " + s.score + "/10"), "");
+  L.push("## Solid understanding", ...arr(t.solid).map(s => "- " + s), "");
+  L.push("## Open misconceptions", ...arr(t.openMis).map((m, i) => (i + 1) + ". I said: " + m.text + " | Correct: " + (m.correct || "") + " | Source: " + (m.source || "verify")), "");
+  L.push("## Fixed misconceptions", ...arr(t.fixedMis).map(m => "- (" + (m.fixedOn || "?") + ") Was: " + m.text + " | Now: " + (m.correct || "")), "");
+  L.push("## Gaps", ...arr(t.gaps).map(s => "- " + s), "");
+  L.push("## Layman's version", t.layman || "", "");
+  L.push("## Sources to verify", ...arr(t.sources).map(s => "- " + s), "");
+  L.push("## Session notes", ...sortedNotes(t).map(n => "- (" + (n.date || "?") + ") " + n.text));
+  const rel = arr(t.related).filter(id => S.db.topics[id]);
+  if (rel.length) L.push("", "## Related topics", ...rel.map(id => "- " + S.db.topics[id].title));
+  return L.join("\n");
+}
+
+/* ---------- merge rules: never lose history ---------- */
+function unionBy(a, b, key) { const out = arr(a).slice(); for (const x of arr(b)) if (!out.some(y => key(y) === key(x))) out.push(x); return out; }
+const fixKey = m => String(m.text || "").toLowerCase().trim();
+const noteKey = n => (n.date || "") + "|" + String(n.text || "").toLowerCase().trim();
+function applyCard(card, fileSlug) {
+  const ex = findTopic(card.title, fileSlug);
+  const now = new Date().toISOString();
+  const t = ex || { id: slugify(card.title) + "-" + uid().slice(-4), title: card.title, createdAt: now, history: [], related: [] };
+  const hist = arr(t.history).slice();
+  const last = hist[hist.length - 1];
+  if (card.score != null && (!last || last.score !== card.score || last.date !== card.lastReviewed)) hist.push({ date: card.lastReviewed || today(), score: card.score });
+  Object.assign(t, {
+    title: ex ? t.title : card.title, fileSlug: t.fileSlug || fileSlug || slugify(card.title),
+    score: card.score, lastReviewed: card.lastReviewed, sessions: Math.max(card.sessions || 0, t.sessions || 0),
+    tags: card.tags.length ? card.tags : arr(t.tags), subScores: card.subScores, solid: card.solid, openMis: card.openMis,
+    fixedMis: unionBy(card.fixedMis, t.fixedMis, fixKey), gaps: card.gaps, layman: card.layman || t.layman || "", sources: card.sources,
+    sessionNotes: unionBy(card.sessionNotes, t.sessionNotes, noteKey), history: hist, updatedAt: now
+  });
+  S.db.topics[t.id] = t;
+  return t;
+}
+function linkRelated(t, titles) { for (const rt of arr(titles)) { const o = findTopic(rt); if (o && o.id !== t.id) { t.related = [...new Set([...arr(t.related), o.id])]; o.related = [...new Set([...arr(o.related), t.id])]; } } }
+
+/* ---------- files ---------- */
+async function saveFile(name, text, mime) {
+  if (DESKTOP) { try { await deskReady; const r = await window.pywebview.api.save_file(name, text); if (r) toast("Saved " + name + "."); } catch (e) { toast("Save failed."); } return; }
+  const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+  const a = h("a", { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = h("textarea", { style: "position:fixed;top:-1000px;opacity:0" }); ta.value = text; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch {} ta.remove(); return ok;
+}
+const canShare = () => !DESKTOP && !!navigator.share;
+async function shareText(title, text) { try { await navigator.share({ title, text }); } catch (e) { if (e && e.name !== "AbortError") toast("Sharing isn't available. Use Copy."); } }
+
+/* ---------- render ---------- */
+function typing() { const a = document.activeElement; return !!(a && a.closest && a.closest("main") && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
+function render() {
+  const main = $("#main"); const st = main.scrollTop;
+  let node;
+  try { node = view(); } catch (err) { console.error(err); node = h("div", { class: "wrap" }, h("p", { class: "banner", text: "Display error: " + err.message })); }
+  main.replaceChildren(node); main.scrollTop = st;
+  const tabs = [["hub", "Hub"], ["topics", "Topics"], ["import", "Import"], ["more", "More"]];
+  const cur = S.view === "topic" ? "topics" : S.view;
+  $("#nav").replaceChildren(...tabs.map(([k, l]) => h("button", { "aria-current": cur === k ? "page" : null, onclick: () => go(k), text: l })));
+}
+function go(v, topicId) { S.view = v; if (topicId !== undefined) S.topicId = topicId; S.confirm = null; render(); $("#main").scrollTop = 0; }
+function view() {
+  const w = h("div", { class: "wrap" });
+  w.append(({ hub: vHub, topics: vTopics, topic: vTopic, import: vImport, more: vMore }[S.view] || vHub)());
+  return w;
+}
+function scoreNode(t) {
+  if (t.score == null) return h("div", { class: "score none", text: "–" });
+  return h("div", { class: "score" + (t.score < 5 ? " low" : "") }, String(t.score), h("small", { text: "/10" }));
+}
+function section(title, content) { return content ? [h("h2", { text: title }), content] : []; }
+function confirmBtn(key, label, again, fn) {
+  return h("button", { class: "btn warn", text: S.confirm === key ? again : label, onclick: () => {
+    if (S.confirm !== key) { S.confirm = key; render(); setTimeout(() => { if (S.confirm === key) { S.confirm = null; render(); } }, 4000); return; }
+    S.confirm = null; fn();
+  } });
+}
+
+/* ---------- hub ---------- */
+function whyNext(t) {
+  if (t.score == null) return "it has no score yet";
+  const bits = [];
+  if (t.score < 5) bits.push("it scores " + t.score + "/10");
+  const ds = daysSince(t.lastReviewed); if (ds != null && ds >= 60) bits.push("it hasn't been reviewed in " + ds + " days"); else if (dueIn(t) <= 0) bits.push("it's due for review");
+  if (arr(t.openMis).length) bits.push(plural(t.openMis.length, "misconception is", "misconceptions are") + " still open");
+  return bits.join(", ") || "it's your weakest topic";
+}
+function vHub() {
+  const box = h("div"); const ts = topicList();
+  box.append(h("h1", { text: "Hub" }));
+  const scored = ts.filter(t => t.score != null);
+  box.append(h("div", { class: "stats" },
+    h("div", {}, h("b", { text: String(ts.length) }), h("span", { text: "topics" })),
+    h("div", {}, h("b", { text: scored.length ? (scored.reduce((a, t) => a + t.score, 0) / scored.length).toFixed(1) : "–" }), h("span", { text: "average score" })),
+    h("div", {}, h("b", { text: String(ts.filter(needsAttention).length) }), h("span", { text: "need attention" }))));
+  if (!ts.length) {
+    box.append(h("div", { class: "panel" }, h("p", { text: "No topics yet." }), h("p", { class: "muted small", text: "Talk a topic through in Claude, say the code word, save the .md card, then import it here." }),
+      h("button", { class: "btn primary", text: "Import a card", onclick: () => go("import") })));
+    return box;
+  }
+  const r = ranked(), top = r[0];
+  box.append(h("div", { class: "panel next" },
+    h("div", { class: "muted small", text: "Challenge next" }),
+    h("div", { style: "font:700 24px/1.1 var(--cond);margin:2px 0 4px", text: top.title }),
+    h("p", { class: "small", text: "Because " + whyNext(top) + "." }),
+    h("div", { class: "row" },
+      h("button", { class: "btn signal", text: "Copy for Claude", onclick: () => sendToClaude(top, "CHALLENGE") }),
+      h("button", { class: "btn", text: "Open", onclick: () => go("topic", top.id) }))));
+  box.append(h("h2", { text: "All topics" }));
+  const tags = allTags();
+  if (S.hubTag && !tags.some(g => g.toLowerCase() === S.hubTag.toLowerCase())) S.hubTag = null;
+  if (tags.length) box.append(h("div", { class: "tags" },
+    h("button", { class: "tg", "aria-pressed": S.hubTag ? "false" : "true", text: "All", onclick: () => { S.hubTag = null; render(); } }),
+    tags.map(g => h("button", { class: "tg", "aria-pressed": S.hubTag && S.hubTag.toLowerCase() === g.toLowerCase() ? "true" : "false", text: g, onclick: () => { S.hubTag = g; render(); } }))));
+  box.append(h("div", { class: "hubrow head" }, h("span", { text: "Topic" }), h("span", { class: "n", text: "Score" }), h("span", { class: "n", text: "Days" }), h("span", { class: "n", text: "Open" })));
+  (S.hubTag ? r.filter(t => hasTag(t, S.hubTag)) : r).forEach(t => {
+    const ds = daysSince(t.lastReviewed); const badges = [];
+    if (t.score == null) badges.push(h("span", { class: "badge s", text: "not assessed" }));
+    else if (t.score < 5) badges.push(h("span", { class: "badge r", text: "below 5" }));
+    if (ds != null && ds >= 60) badges.push(h("span", { class: "badge r", text: "60+ days" }));
+    else if (t.score != null && dueIn(t) <= 0) badges.push(h("span", { class: "badge s", text: "due" }));
+    box.append(h("button", { class: "hubrow", onclick: () => go("topic", t.id) },
+      h("span", {}, h("span", { style: "font-weight:600;margin-right:6px", text: t.title }), badges),
+      h("span", { class: "n", text: t.score == null ? "–" : String(t.score) }),
+      h("span", { class: "n", text: ds == null ? "–" : String(ds) }),
+      h("span", { class: "n", text: String(arr(t.openMis).length) })));
+  });
+  return box;
+}
+
+/* ---------- topics ---------- */
+function topicRows() {
+  const q = S.q.toLowerCase().trim();
+  const list = topicList().filter(t => !q || (t.title || "").toLowerCase().includes(q) || arr(t.tags).some(g => g.toLowerCase().includes(q)));
+  if (!list.length) return [h("p", { class: "muted", style: "margin-top:12px", text: topicList().length ? "No topic matches." : "No topics yet. Import a card first." })];
+  return list.map(t => h("button", { class: "trow", onclick: () => go("topic", t.id) },
+    h("div", {}, h("div", { class: "t", text: t.title }), h("div", { class: "m", text: plural(arr(t.openMis).length, "open misconception", "open misconceptions") + ", " + plural(arr(t.gaps).length, "gap", "gaps") + ". " + (t.lastReviewed ? "Reviewed " + daysSince(t.lastReviewed) + " d ago." : "Never reviewed.") })),
+    scoreNode(t)));
+}
+function vTopics() {
+  const box = h("div");
+  box.append(h("h1", { text: "Topics" }));
+  const listEl = h("div", {}, topicRows());
+  box.append(h("input", { type: "text", placeholder: "Search topics or tags", value: S.q, oninput: e => { S.q = e.target.value; listEl.replaceChildren(...topicRows()); } }), listEl);
+  return box;
+}
+function sendText(t, mode) { return mode + " " + t.title + "\n\n" + cardMd(t); }
+async function sendToClaude(t, mode) {
+  if (await copyText(sendText(t, mode))) toast("Copied. Paste it into your Second Brain chat in Claude.");
+  else toast("Couldn't copy. Use Save .md instead.");
+}
+function vTopic() {
+  const t = S.db.topics[S.topicId];
+  if (!t) return h("div", {}, h("p", { text: "This topic no longer exists." }), h("button", { class: "btn", text: "All topics", onclick: () => go("topics") }));
+  const box = h("div");
+  box.append(h("button", { class: "btn link", text: "‹ Topics", onclick: () => go("topics") }));
+  const hist = arr(t.history);
+  box.append(h("div", { class: "hero" },
+    h("div", {}, h("h1", { text: t.title }),
+      h("div", { class: "muted small", text: (t.lastReviewed ? "Reviewed " + t.lastReviewed + " (" + daysSince(t.lastReviewed) + " d ago)" : "Never reviewed") + ", " + plural(t.sessions || 0, "session", "sessions") + "." }),
+      hist.length > 1 ? h("div", { class: "trend", text: "Score history: " + hist.map(x => x.score).join(" → ") }) : null),
+    scoreNode(t)));
+  if (arr(t.tags).length) box.append(h("div", { class: "tags" }, t.tags.map(g => h("span", { class: "tg", text: g }))));
+
+  box.append(h("div", { class: "sendbox" },
+    h("p", { class: "small muted", text: "Take this topic back to Claude. Copy, paste into your Second Brain chat, talk, then import the new card here." }),
+    h("div", { class: "row" },
+      h("button", { class: "btn primary", text: "Copy: Continue", onclick: () => sendToClaude(t, "CONTINUE") }),
+      h("button", { class: "btn", text: "Copy: Challenge", onclick: () => sendToClaude(t, "CHALLENGE") }),
+      canShare() ? h("button", { class: "btn", text: "Share…", onclick: () => shareText(t.title, sendText(t, "CONTINUE")) }) : null,
+      h("button", { class: "btn", text: "Save .md", onclick: () => saveFile((t.fileSlug || slugify(t.title)) + ".md", cardMd(t), "text/markdown;charset=utf-8") }))));
+
+  if (arr(t.subScores).length) box.append(...section("Sub-scores", h("div", {}, t.subScores.map(s => h("div", { class: "bar" }, h("span", { text: s.name }), h("i", {}, h("b", { style: "width:" + (num(s.score) || 0) * 10 + "%" })), h("span", { class: "v", text: String(s.score ?? "–") }))))));
+  box.append(...section("Open misconceptions (" + arr(t.openMis).length + ")", arr(t.openMis).length ? h("ol", { class: "mis" }, t.openMis.map(m => h("li", {},
+    h("span", { text: m.text }), h("span", { class: "c", text: "Correct: " + (m.correct || "") }), m.source ? h("span", { class: "src", text: "Source: " + m.source }) : null))) : h("p", { class: "muted small", text: "None open." })));
+  box.append(...section("Gaps", arr(t.gaps).length ? h("ul", { class: "plain" }, t.gaps.map(s => h("li", { text: s }))) : null));
+  box.append(...section("Solid understanding", arr(t.solid).length ? h("ul", { class: "plain" }, t.solid.map(s => h("li", { text: s }))) : null));
+  box.append(...section("Layman's version", t.layman ? h("p", { class: "layman", text: t.layman }) : null));
+  box.append(...section("Sources to verify", arr(t.sources).length ? h("ul", { class: "plain" }, t.sources.map(s => h("li", { text: s }))) : null));
+  box.append(...section("Fixed misconceptions", arr(t.fixedMis).length ? h("ul", { class: "plain mis" }, t.fixedMis.map(m => h("li", {}, h("span", { text: m.text }), h("span", { class: "c", text: "Now: " + (m.correct || "") }), h("span", { class: "d", text: "Fixed " + (m.fixedOn || "?") })))) : null));
+  box.append(...section("Session notes", arr(t.sessionNotes).length ? h("ul", { class: "plain" }, sortedNotes(t).map(n => h("li", {}, h("b", { text: (n.date || "?") + " " }), n.text))) : null));
+  const rel = arr(t.related).filter(id => S.db.topics[id]);
+  if (rel.length) box.append(...section("Related topics", h("div", { class: "tags" }, rel.map(id => h("button", { class: "tg", text: S.db.topics[id].title, onclick: () => go("topic", id) })))));
+
+  const ns = notesFor(t.id);
+  box.append(h("h2", { text: "Session notes files (" + ns.length + ")" }));
+  if (!ns.length) box.append(h("p", { class: "muted small", text: "Import the -notes.html file from chat and it lands here." }));
+  ns.forEach(n => box.append(h("div", { class: "notefile" },
+    h("div", {}, h("div", { style: "font-weight:600", text: n.title || n.fileName }), h("div", { class: "k", text: n.date + " · " + n.fileName })),
+    h("div", { class: "row", style: "gap:6px" },
+      h("button", { class: "btn", text: "Open", onclick: () => openNote(n) }),
+      confirmBtn("dn-" + n.id, "Delete", "Sure?", () => { delete S.db.notes[n.id]; persist(); render(); toast("Notes file deleted."); })))));
+
+  box.append(h("div", { class: "row", style: "margin-top:28px" },
+    confirmBtn("dt-" + t.id, "Delete topic", "Tap again to delete topic and its notes", () => {
+      for (const n of notesFor(t.id)) delete S.db.notes[n.id];
+      for (const o of topicList()) if (arr(o.related).includes(t.id)) o.related = o.related.filter(x => x !== t.id);
+      delete S.db.topics[t.id]; persist(); go("topics"); toast("Topic deleted.");
+    })));
+  return box;
+}
+function openNote(n) {
+  const ov = $("#overlay");
+  const frame = h("iframe", { title: n.title || n.fileName, sandbox: "allow-same-origin allow-modals" });
+  frame.srcdoc = n.html;
+  const close = () => { ov.replaceChildren(); document.removeEventListener("keydown", esc); };
+  const esc = e => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", esc);
+  ov.replaceChildren(h("div", { class: "viewer" },
+    h("div", { class: "vh" },
+      h("button", { class: "btn", text: "‹ Close", onclick: close }),
+      h("b", { text: n.title || n.fileName }),
+      !DESKTOP ? h("button", { class: "btn", text: "Print", onclick: () => { try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch { toast("Use Save, then print from your browser."); } } }) : null,
+      h("button", { class: "btn", text: "Save", onclick: () => saveFile(n.fileName, n.html, "text/html;charset=utf-8") })),
+    frame));
+}
+
+/* ---------- import ---------- */
+function titleFromHtml(html) { const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html); return m ? m[1].replace(/\s+/g, " ").trim().replace(/\s*[—-]\s*notes$/i, "") : ""; }
+function noteSlug(name) { return name.replace(/\.html?$/i, "").replace(/-notes$/i, ""); }
+function cleanName(n) { return String(n || "").replace(/\s*\(\d+\)(?=\.[^.]+$)/, "").replace(/\s+(?=\.[^.]+$)/, ""); }
+async function readFiles(files) {
+  const I = S.imp; I.busy = true; render();
+  const items = [];
+  for (const f0 of files) {
+    const f = { name: cleanName(f0.name), size: f0.size, lastModified: f0.lastModified, text: () => f0.text() };
+    if (f.size > 8e6) { toast(f.name + " is too large."); continue; }
+    let text; try { text = await f.text(); } catch { toast("Couldn't read " + f.name + "."); continue; }
+    if (/\.html?$/i.test(f.name) || /^\s*<!doctype html|^\s*<html/i.test(text)) {
+      items.push({ kind: "note", fileName: f.name, html: text, title: titleFromHtml(text), slug: noteSlug(f.name), date: f.lastModified ? new Date(f.lastModified).toISOString().slice(0, 10) : today() });
+    } else if (/\.json$/i.test(f.name)) {
+      let data; try { data = JSON.parse(text); } catch { toast(f.name + " isn't valid JSON."); continue; }
+      if (data && data.app === "second-brain") items.push({ kind: "backup", fileName: f.name, data });
+      else toast(f.name + " isn't a Second Brain backup.");
+    } else {
+      const slug = f.name.replace(/\.(md|markdown|txt)$/i, "");
+      const cards = parseCards(text);
+      if (!cards.length) toast(f.name + " has no topic card in it.");
+      cards.forEach(c => items.push({ kind: "card", fileName: f.name, slug: cards.length === 1 ? slug : slugify(c.title), card: c }));
+    }
+  }
+  I.busy = false;
+  if (items.length) buildPreview(items); else render();
+}
+function previewPasted() {
+  const I = S.imp; const t = I.text.trim();
+  if (!t) return toast("Paste a card first.");
+  const cards = parseCards(t);
+  if (!cards.length) return toast("That doesn't look like a topic card. It should start with '# Topic' and 'Score: X/10'.");
+  buildPreview(cards.map(c => ({ kind: "card", fileName: "pasted text", slug: slugify(c.title), card: c })));
+}
+function buildPreview(items) {
+  // decide defaults for each item
+  for (const it of items) {
+    if (it.kind === "card") {
+      const ex = findTopic(it.card.title, it.slug); it.existing = ex || null;
+      it.older = !!(ex && ex.lastReviewed && it.card.lastReviewed && it.card.lastReviewed < ex.lastReviewed);
+      const J = x => JSON.stringify(arr(x));
+      it.same = !!(ex && ex.lastReviewed === it.card.lastReviewed && ex.score === it.card.score && J(ex.openMis) === J(it.card.openMis) && J(ex.gaps) === J(it.card.gaps) && J(ex.solid) === J(it.card.solid));
+      it.on = !it.older && !it.same;
+    } else if (it.kind === "note") {
+      const batch = items.findIndex(x => x.kind === "card" && (x.slug === it.slug || slugify(x.card.title) === it.slug || (it.title && x.card.title.toLowerCase() === it.title.toLowerCase())));
+      const ex = findTopic(it.title, it.slug);
+      it.target = batch >= 0 ? "b" + batch : ex ? "t" + ex.id : "";
+      it.dupe = Object.values(S.db.notes).some(n => n.fileName === it.fileName && n.html === it.html);
+      it.on = !it.dupe;
+    } else it.on = true;
+  }
+  S.imp.items = items; render(); $("#main").scrollTop = 0;
+}
+function commitImport() {
+  const I = S.imp; const items = I.items.filter(x => x.on);
+  if (!items.length) return toast("Nothing selected.");
+  let nc = 0, nn = 0, nb = 0; const batchIds = {};
+  I.items.forEach((it, i) => { if (it.on && it.kind === "card") { const t = applyCard(it.card, it.slug); batchIds[i] = t.id; nc++; } });
+  I.items.forEach((it, i) => { if (it.on && it.kind === "card") linkRelated(S.db.topics[batchIds[i]], it.card.related); });
+  for (const it of items.filter(x => x.kind === "note")) {
+    let tid = it.target.startsWith("b") ? batchIds[+it.target.slice(1)] : it.target.startsWith("t") ? it.target.slice(1) : null;
+    if (!tid && it.target.startsWith("b")) { const src = I.items[+it.target.slice(1)]; const ex = src && findTopic(src.card.title, src.slug); tid = ex && ex.id; }
+    if (!tid || !S.db.topics[tid]) continue;
+    const id = uid(); S.db.notes[id] = { id, topicId: tid, fileName: it.fileName, title: it.title || it.fileName, date: it.date, html: it.html, importedAt: new Date().toISOString() }; nn++;
+  }
+  for (const it of items.filter(x => x.kind === "backup")) { nb += mergeBackup(it.data); }
+  persist();
+  Object.assign(I, { items: null, text: "" });
+  const bits = []; if (nc) bits.push(plural(nc, "card", "cards")); if (nn) bits.push(plural(nn, "notes file", "notes files")); if (nb) bits.push("backup (" + plural(nb, "topic", "topics") + ")");
+  toast(bits.length ? "Imported " + bits.join(", ") + "." : "Nothing imported.");
+  const lastCard = Object.values(batchIds).pop();
+  if (nc === 1 && lastCard) go("topic", lastCard); else go("hub");
+}
+function vImport() {
+  const I = S.imp; const box = h("div");
+  if (I.items) return vPreview();
+  box.append(h("h1", { text: "Import" }));
+  box.append(h("p", { class: "muted", text: "Bring back what Claude gave you: the .md card, the -notes.html file, or both at once." }));
+  const fi = h("input", { type: "file", multiple: true, accept: ".md,.markdown,.txt,.html,.htm,.json,text/markdown,text/plain,text/html,application/json", onchange: e => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) readFiles(fs); } });
+  box.append(h("div", { class: "row", style: "margin:6px 0 4px" },
+    I.busy ? h("span", { text: "Reading files…" }) : h("label", { class: "btn primary filepick" }, "Choose files", fi)));
+  box.append(h("p", { class: "muted small", text: "You can pick several files together. Backups (.json) are accepted here too." }));
+  box.append(h("h2", { text: "Or paste a card" }));
+  box.append(h("textarea", { placeholder: "# Topic\nScore: 6/10 | Last reviewed: 2026-09-25 | Sessions: 1\n…", value: I.text, oninput: e => I.text = e.target.value }));
+  box.append(h("div", { class: "row", style: "margin-top:8px" },
+    h("button", { class: "btn", text: "Preview import", onclick: previewPasted }),
+    h("button", { class: "btn", text: "Paste from clipboard", onclick: async () => { try { const t = await navigator.clipboard.readText(); if (t) { I.text = t; render(); } else toast("Clipboard is empty."); } catch { toast("Long-press the box and choose Paste."); } } })));
+  box.append(h("h2", { text: "The loop" }));
+  box.append(h("ol", { class: "plain small" },
+    h("li", { text: "Open a topic here and tap Copy: Continue (or Challenge)." }),
+    h("li", { text: "Paste it into your Second Brain chat in Claude and talk." }),
+    h("li", { text: "Say \u201clet's collect what we have discussed\u201d and save both files Claude gives you." }),
+    h("li", { text: "Import them here. The card updates the topic; nothing you fixed before is lost." })));
+  return box;
+}
+function vPreview() {
+  const I = S.imp; const box = h("div");
+  box.append(h("h1", { text: "Check before importing" }));
+  box.append(h("p", { class: "muted small", text: "Fixed misconceptions, session notes and score history already here are always kept." }));
+  const targets = () => [h("option", { value: "", text: "Choose a topic…" }),
+    ...I.items.map((x, i) => x.kind === "card" && x.on && !x.existing ? h("option", { value: "b" + i, text: x.card.title + " (new)" }) : null),
+    ...topicList().map(t => h("option", { value: "t" + t.id, text: t.title }))];
+  I.items.forEach((it, i) => {
+    const cb = h("input", { type: "checkbox", "aria-label": "Include", checked: it.on, onchange: e => { it.on = e.target.checked; render(); } });
+    if (it.kind === "card") {
+      const c = it.card, ex = it.existing;
+      const cls = it.older ? "old" : ex ? "upd" : "new";
+      const what = it.same ? "Already up to date." : it.older ? "Older than the card you have (" + ex.lastReviewed + "). Left unticked." : ex ? "Updates existing topic" + (ex.score != null ? ", score " + ex.score + " → " + (c.score ?? "–") : "") + "." : "New topic, score " + (c.score ?? "–") + ".";
+      box.append(h("div", { class: "imp " + cls }, cb, h("div", {},
+        h("b", { text: c.title }), h("div", { class: "k", text: what }),
+        h("div", { class: "k", text: plural(c.openMis.length, "open misconception", "open misconceptions") + ", " + plural(c.gaps.length, "gap", "gaps") + ", " + c.fixedMis.length + " fixed. From " + it.fileName + "." }))));
+    } else if (it.kind === "note") {
+      const sel = h("select", { "aria-label": "Topic for this notes file", onchange: e => { it.target = e.target.value; } }, targets());
+      sel.value = it.target;
+      box.append(h("div", { class: "imp note" }, cb, h("div", {},
+        h("b", { text: "Notes: " + (it.title || it.fileName) }),
+        h("div", { class: "k", text: it.dupe ? "Already imported. Left unticked." : it.fileName }), sel)));
+    } else {
+      const n = Object.keys(it.data.topics || {}).length;
+      box.append(h("div", { class: "imp upd" }, cb, h("div", {}, h("b", { text: "Backup: " + it.fileName }), h("div", { class: "k", text: plural(n, "topic", "topics") + ". Merged safely: newer cards win, history is combined." }))));
+    }
+  });
+  box.append(h("div", { class: "row", style: "margin-top:14px" },
+    h("button", { class: "btn primary", text: "Import selected", onclick: () => {
+      const bad = I.items.find(x => x.on && x.kind === "note" && !x.target);
+      if (bad) return toast("Choose a topic for " + (bad.title || bad.fileName) + ".");
+      commitImport();
+    } }),
+    h("button", { class: "btn", text: "Cancel", onclick: () => { I.items = null; render(); } })));
+  return box;
+}
+
+/* ---------- backup ---------- */
+function backupJson() { const d = JSON.parse(JSON.stringify(S.db)); d.settings = { theme: d.settings.theme }; d.exportedAt = new Date().toISOString(); d.appVersion = APP_VERSION; return JSON.stringify(d, null, 1); }
+function mergeBackup(data) {
+  let n = 0;
+  for (const bt of Object.values(data.topics || {})) {
+    if (!bt || !bt.title) continue;
+    const ex = S.db.topics[bt.id] || findTopic(bt.title, bt.fileSlug);
+    if (!ex) { const id = bt.id && !S.db.topics[bt.id] ? bt.id : slugify(bt.title) + "-" + uid().slice(-4); S.db.topics[id] = Object.assign({}, bt, { id }); n++; continue; }
+    const newer = String(bt.lastReviewed || "") > String(ex.lastReviewed || "") || (bt.lastReviewed === ex.lastReviewed && String(bt.updatedAt || "") > String(ex.updatedAt || ""));
+    const base = newer ? Object.assign({}, bt, { id: ex.id }) : ex;
+    base.fixedMis = unionBy(base.fixedMis, newer ? ex.fixedMis : bt.fixedMis, fixKey);
+    base.sessionNotes = unionBy(base.sessionNotes, newer ? ex.sessionNotes : bt.sessionNotes, noteKey);
+    base.history = unionBy(arr(ex.history), arr(bt.history), x => x.date + "|" + x.score).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    base.related = [...new Set([...arr(ex.related), ...arr(bt.related)])];
+    S.db.topics[ex.id] = base; n++;
+  }
+  for (const bn of Object.values(data.notes || {})) {
+    if (!bn || !bn.html) continue;
+    if (Object.values(S.db.notes).some(n2 => n2.fileName === bn.fileName && n2.html === bn.html)) continue;
+    const tid = S.db.topics[bn.topicId] ? bn.topicId : (() => { const bt = (data.topics || {})[bn.topicId]; const m = bt && findTopic(bt.title, bt.fileSlug); return m && m.id; })();
+    if (!tid) continue;
+    const id = bn.id && !S.db.notes[bn.id] ? bn.id : uid();
+    S.db.notes[id] = Object.assign({}, bn, { id, topicId: tid });
+  }
+  return n;
+}
+
+/* ---------- more ---------- */
+async function hashPin(pin) {
+  try { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("sb:" + pin)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+  catch { let x = 5381; for (const c of "sb:" + pin) x = ((x << 5) + x + c.charCodeAt(0)) | 0; return "d" + (x >>> 0).toString(16); }
+}
+function vMore() {
+  const box = h("div"); const st = S.db.settings;
+  box.append(h("h1", { text: "More" }));
+  box.append(h("h2", { text: "Backup" }));
+  box.append(h("p", { class: "muted small", text: "Everything lives on this device only. Save a backup now and then, and use it to move data between phone and PC." }));
+  box.append(h("div", { class: "row" },
+    h("button", { class: "btn primary", text: "Save backup (.json)", onclick: () => saveFile("second-brain-backup-" + today() + ".json", backupJson(), "application/json") }),
+    h("button", { class: "btn", text: "All cards (.md)", disabled: !topicList().length, onclick: () => saveFile("second-brain-cards-" + today() + ".md", topicList().map(cardMd).join("\n\n---\n\n"), "text/markdown;charset=utf-8") })));
+  box.append(h("p", { class: "muted small", style: "margin-top:8px", text: "To restore or merge a backup, choose it on the Import tab." }));
+
+  box.append(h("h2", { text: "Appearance" }));
+  box.append(h("div", { class: "row" }, ["dark", "light"].map(th => h("button", { class: "btn" + (st.theme === th ? " primary" : ""), text: th === "dark" ? "Dark" : "Light", onclick: () => { st.theme = th; applyTheme(); persist(); render(); } }))));
+
+  box.append(h("h2", { text: "PIN lock" }));
+  box.append(h("p", { class: "muted small", text: st.pinHash ? "PIN is on. Triple-tap the title bar to lock." : "Optional. Keeps casual eyes out; it isn't encryption." }));
+  let p1 = "";
+  box.append(h("div", { class: "row", style: "flex-wrap:nowrap" },
+    h("input", { type: "password", inputmode: "numeric", placeholder: st.pinHash ? "New PIN" : "Set a PIN (4+ digits)", oninput: e => p1 = e.target.value.trim() }),
+    h("button", { class: "btn", text: "Save PIN", onclick: async () => { if (!/^\d{4,8}$/.test(p1)) return toast("Use 4 to 8 digits."); st.pinHash = await hashPin(p1); persist(); render(); toast("PIN set. Triple-tap the title bar to lock."); } })));
+  if (st.pinHash) box.append(h("div", { style: "margin-top:8px" }, h("button", { class: "btn link", text: "Turn PIN off", onclick: () => { st.pinHash = null; persist(); render(); toast("PIN turned off."); } })));
+
+  box.append(h("h2", { text: "Storage" }));
+  const nNotes = Object.keys(S.db.notes).length;
+  const size = new Blob([JSON.stringify(S.db)]).size;
+  box.append(h("p", { class: "small", text: plural(topicList().length, "topic", "topics") + ", " + plural(nNotes, "notes file", "notes files") + ", about " + Math.max(1, Math.round(size / 1024)) + " KB. " + (DESKTOP ? "Saved in the data file next to SecondBrain.exe." : "Saved in this browser on this device.") }));
+  box.append(confirmBtn("wipe", "Delete everything", "Tap again. This can't be undone.", () => { const th = S.db.settings.theme; S.db = emptyDb(); S.db.settings.theme = th; persist(); go("hub"); toast("All data deleted."); }));
+  box.append(h("p", { class: "muted small", style: "margin-top:20px", text: "Second Brain " + APP_VERSION + (DESKTOP ? " · desktop" : "") }));
+  return box;
+}
+function applyTheme() { const th = S.db.settings.theme === "light" ? "light" : "dark"; document.documentElement.dataset.theme = th; const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = th === "dark" ? "#0E1B1D" : "#E9EEED"; }
+
+/* ---------- lock ---------- */
+function showLock() {
+  S.locked = true; let pin = "";
+  const inp = h("input", { type: "password", inputmode: "numeric", autocomplete: "off", "aria-label": "PIN", oninput: e => pin = e.target.value.trim(), onkeydown: e => { if (e.key === "Enter") tryPin(); } });
+  const tryPin = async () => { if (await hashPin(pin) === S.db.settings.pinHash) { S.locked = false; $("#overlay").replaceChildren(); render(); } else { inp.value = ""; pin = ""; toast("Wrong PIN."); } };
+  $("#overlay").replaceChildren(h("div", { class: "lock" }, h("div", { class: "box" }, h("h1", { text: "Second Brain" }), h("p", { class: "muted", text: "Enter your PIN" }), inp, h("button", { class: "btn primary", text: "Unlock", onclick: tryPin }))));
+  setTimeout(() => inp.focus(), 50);
+}
+let taps = [];
+$("#brand").addEventListener("click", () => {
+  const now = Date.now(); taps = taps.filter(x => now - x < 700); taps.push(now);
+  if (taps.length >= 3) { taps = []; if (S.db.settings.pinHash) { if (saveTimer) flush(); showLock(); } else toast("Set a PIN under More first."); }
+});
+
+/* ---------- boot ---------- */
+async function init() {
+  render();
+  try {
+    const d = await Store.load();
+    if (d && d.topics) S.db = Object.assign(emptyDb(), d, { settings: Object.assign(emptyDb().settings, d.settings || {}) });
+    setStatus(DESKTOP ? "Desktop" : "Offline-ready");
+  } catch (e) { console.error(e); setStatus("Storage error"); toast("Couldn't open storage. Nothing will be saved."); }
+  applyTheme(); render();
+  if (S.db.settings.pinHash) showLock();
+  if (!DESKTOP) {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+    if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+init();
+</script>
+</body>
+</html>
