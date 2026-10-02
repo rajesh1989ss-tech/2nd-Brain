@@ -139,6 +139,17 @@ ol.mis li,ul.plain li{margin:0 0 10px}
 .area .nm{font:700 20px/1.1 var(--cond);font-stretch:condensed;overflow-wrap:anywhere}
 .area .ct{font-size:12px;color:var(--ink-2)}
 .area .od{font-size:12px;color:var(--rust);font-weight:600}
+.am{display:grid;gap:8px;margin:8px 0}
+.amr{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--stbd);border-radius:10px;padding:8px 8px 8px 12px}
+.amr .top{display:flex;align-items:center;gap:8px}
+.amr .ic{font-size:22px;line-height:1}
+.amr .nm{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
+.amr .nm small{display:block;font-weight:400;font-size:12px;color:var(--ink-2)}
+.amr .ab{min-width:40px;min-height:40px;padding:0 8px;font-size:16px}
+.amr .ab:disabled{opacity:.3}
+.amr .del{margin-top:8px;display:grid;gap:8px}
+.ahead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ahead h2{margin-bottom:0}
 .ri{display:grid;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:9px 0}
 .ri.todo{grid-template-columns:auto minmax(0,1fr)}
 .ri.contact{grid-template-columns:minmax(0,1fr) auto}
@@ -199,7 +210,7 @@ ol.mis li,ul.plain li{margin:0 0 10px}
 
 <script>
 "use strict";
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 /* ---------- helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s);
 function h(tag, props, ...kids) {
@@ -272,7 +283,7 @@ function setStatus(t) { const s = $("#status"); if (s) s.textContent = t; }
 
 /* ---------- state ---------- */
 const S = { db: emptyDb(), view: "learn", topicId: null, areaId: null, itemId: null, q: "", sq: "", hubTag: null, confirm: null, locked: false,
-  imp: { text: "", items: null, busy: false }, edit: null, newArea: null, showDone: {}, attNew: null, attBusy: null, attFilter: {},
+  imp: { text: "", items: null, busy: false }, edit: null, newArea: null, areaEdit: false, areaDel: null, showDone: {}, attNew: null, attBusy: null, attFilter: {},
   rep: { scope: "all", topics: null, done: false, photos: true } };
 const topicList = () => Object.values(S.db.topics).sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 const notesFor = id => Object.values(S.db.notes).filter(n => n.topicId === id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
@@ -305,12 +316,12 @@ const KIND_ORDER = ["todo", "fact", "contact", "note"];
 const AREA_ICONS = ["🏠", "🐄", "🚢", "⚓", "🔧", "📦", "🧾", "🌾", "💧", "⚡", "🚗", "🏥", "💰", "👪", "📚", "📌"];
 const SUGGESTED = [["🏠", "Home"], ["🐄", "Farm"], ["🚢", "Ship"], ["⚓", "Voyage"], ["🔧", "Dry Dock"], ["📦", "Requisitions"]];
 const R = () => S.db.refs;
-const areaList = () => Object.values(R().areas).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+const areaList = () => Object.values(R().areas).sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || (a.name || "").localeCompare(b.name || ""));
 const itemList = () => Object.values(R().items);
 const itemsIn = aid => itemList().filter(i => i.areaId === aid);
 const areaOf = i => R().areas[i.areaId];
 function findArea(name) { const k = String(name || "").toLowerCase().trim(); return areaList().find(a => a.name.toLowerCase() === k); }
-function makeArea(name, icon) { const now = new Date().toISOString(); const a = { id: "a" + uid(), name: name.trim(), icon: icon || "📌", createdAt: now, updatedAt: now }; R().areas[a.id] = a; return a; }
+function makeArea(name, icon) { const now = new Date().toISOString(); const a = { id: "a" + uid(), name: name.trim(), icon: icon || "📌", order: areaList().length, createdAt: now, updatedAt: now }; R().areas[a.id] = a; return a; }
 function isOverdue(i) { return i.kind === "todo" && !i.done && isDate(i.due) && dayDiff(i.due) < 0; }
 function isSoon(i) { return i.kind === "todo" && !i.done && isDate(i.due) && dayDiff(i.due) >= 0 && dayDiff(i.due) <= 7; }
 function dueLabel(i) {
@@ -736,7 +747,7 @@ function go(v, ids) {
   NAV.push(snap()); if (NAV.length > 60) NAV.shift();
   try { history.pushState({ sb: 1 }, ""); } catch {}
   S.view = v; Object.assign(S, ids || {}); S.confirm = null;
-  if (["learn", "refs", "report", "import", "more"].includes(v)) prefSet("tab", v);
+  if (["learn", "refs", "report", "import", "more"].includes(v)) { prefSet("tab", v); S.areaEdit = false; S.areaDel = null; S.newArea = null; }
   render(); $("#main").scrollTop = 0;
 }
 function back(fallback, ids) { if (NAV.length) history.back(); else { S.view = fallback; Object.assign(S, ids || {}); render(); } }
@@ -929,23 +940,92 @@ function vRefs() {
     if (attention.length > 12) homeEl.append(h("p", { class: "muted small", text: "…and " + (attention.length - 12) + " more inside the areas." }));
   }
 
-  homeEl.append(h("h2", { text: "Areas" }));
   const areas = areaList();
-  if (areas.length) homeEl.append(h("div", { class: "areas" }, areas.map(a => {
-    const its = itemsIn(a.id); const c = k => its.filter(i => i.kind === k && !(k === "todo" && i.done)).length;
-    const od = its.filter(isOverdue).length;
-    const bits = [c("todo") ? plural(c("todo"), "to-do", "to-dos") : "", c("fact") ? plural(c("fact"), "fact", "facts") : "", c("contact") ? plural(c("contact"), "contact", "contacts") : "", c("note") ? plural(c("note"), "note", "notes") : ""].filter(Boolean);
-    return h("button", { class: "area", onclick: () => go("area", { areaId: a.id }) },
-      h("span", { class: "ic", text: a.icon || "📌" }), h("span", { class: "nm", text: a.name }),
-      h("span", { class: "ct", text: bits.join(" · ") || "Empty" }), od ? h("span", { class: "od", text: od + " overdue" }) : null);
-  })));
-  else homeEl.append(h("p", { class: "muted small", text: "Areas hold your fixed facts. Tap a suggestion to start, or make your own." }));
-
-  const unused = SUGGESTED.filter(([, n]) => !findArea(n));
-  if (unused.length) homeEl.append(h("div", { class: "tags" }, unused.map(([ic, n]) => h("button", { class: "tg", text: "+ " + ic + " " + n, onclick: () => { makeArea(n, ic); persist(); render(); toast(n + " area added."); } }))));
-
-  homeEl.append(areaForm());
+  homeEl.append(h("div", { class: "ahead" }, h("h2", { text: "Areas" }),
+    areas.length ? h("button", { class: "btn sm" + (S.areaEdit ? " green" : ""), text: S.areaEdit ? "✓ Done" : "✏️ Edit areas", onclick: () => { S.areaEdit = !S.areaEdit; S.areaDel = null; S.newArea = null; render(); } }) : null));
+  if (S.areaEdit && areas.length) homeEl.append(areaManager());
+  else {
+    if (areas.length) homeEl.append(h("div", { class: "areas" }, areas.map(a => {
+      const its = itemsIn(a.id); const c = k => its.filter(i => i.kind === k && !(k === "todo" && i.done)).length;
+      const od = its.filter(isOverdue).length;
+      const bits = [c("todo") ? plural(c("todo"), "to-do", "to-dos") : "", c("fact") ? plural(c("fact"), "fact", "facts") : "", c("contact") ? plural(c("contact"), "contact", "contacts") : "", c("note") ? plural(c("note"), "note", "notes") : ""].filter(Boolean);
+      return h("button", { class: "area", onclick: () => go("area", { areaId: a.id }) },
+        h("span", { class: "ic", text: a.icon || "📌" }), h("span", { class: "nm", text: a.name }),
+        h("span", { class: "ct", text: bits.join(" · ") || "Empty" }), od ? h("span", { class: "od", text: od + " overdue" }) : null);
+    })));
+    else homeEl.append(h("p", { class: "muted small", text: "Areas hold your fixed facts. Tap a suggestion to start, or make your own." }));
+    homeEl.append(suggestChips());
+    homeEl.append(areaForm());
+  }
   draw();
+  return box;
+}
+/* Suggested areas as on/off chips: tap to add, tap again to remove (only while empty). */
+function suggestChips() {
+  return h("div", { class: "tags" }, SUGGESTED.map(([ic, n]) => {
+    const a = findArea(n);
+    return h("button", { class: "tg", "aria-pressed": a ? "true" : "false", text: (a ? "✓ " : "+ ") + ic + " " + n, onclick: () => {
+      if (!a) { makeArea(n, ic); persist(); render(); return toast(n + " area added. Tap again to remove."); }
+      const k = itemsIn(a.id).length;
+      if (k) { S.areaEdit = true; S.areaDel = { id: a.id, to: "" }; render(); return toast(a.name + " has " + plural(k, "item", "items") + ". Choose what to do with them."); }
+      removeArea(a); persist(); render(); toast(a.name + " removed.");
+    } });
+  }));
+}
+function normOrder() { areaList().forEach((a, i) => { a.order = i; }); }
+function moveArea(a, d) {
+  normOrder(); const l = areaList(); const i = l.indexOf(a), j = i + d; if (j < 0 || j >= l.length) return;
+  const o = l[j].order; l[j].order = a.order; a.order = o; persist(); render();
+}
+async function removeArea(a, moveTo) {
+  const now = new Date().toISOString();
+  for (const i of itemsIn(a.id)) {
+    if (moveTo && R().areas[moveTo]) { i.areaId = moveTo; i.updatedAt = now; }
+    else { for (const p of arr(i.photos)) await dropFile(p); delete R().items[i.id]; }
+  }
+  if (moveTo && R().areas[moveTo]) R().areas[moveTo].updatedAt = now;
+  delete R().areas[a.id]; normOrder();
+  if (S.areaDel && S.areaDel.id === a.id) S.areaDel = null;
+  if (S.newArea && S.newArea.forId === a.id) S.newArea = null;
+}
+/* Panel shown when removing an area that still holds items. */
+function deletePanel(a) {
+  const its = itemsIn(a.id); const others = areaList().filter(x => x.id !== a.id);
+  const st = S.areaDel; if (!st.to || !R().areas[st.to] || st.to === a.id) st.to = others.length ? others[0].id : "";
+  const done = msg => { persist(); if (S.view === "area") back("refs"); else render(); toast(msg); };
+  return h("div", { class: "del" },
+    h("p", { class: "small", style: "margin:0", text: a.name + " has " + plural(its.length, "item", "items") + ". Move them to another area, or delete them with the area." }),
+    others.length ? h("div", { class: "row", style: "flex-wrap:nowrap" },
+      h("select", { "aria-label": "Move items to", onchange: e => st.to = e.target.value }, others.map(o => h("option", { value: o.id, text: (o.icon || "") + " " + o.name, selected: o.id === st.to ? true : null }))),
+      h("button", { class: "btn green", text: "Move & remove", onclick: async () => { const to = R().areas[st.to]; await removeArea(a, st.to); done(a.name + " removed. Items moved to " + (to ? to.name : "") + "."); } })) : null,
+    h("div", { class: "row" },
+      confirmBtn("dal-" + a.id, "Delete area and items", "Tap again: deletes " + plural(its.length, "item", "items") + " and photos", async () => { await removeArea(a); done(a.name + " and its items deleted."); }),
+      h("button", { class: "btn", text: "Keep it", onclick: () => { S.areaDel = null; render(); } })));
+}
+/* One list to add, rename, reorder and remove areas. Used on References (Edit areas) and under More. */
+function areaManager() {
+  const l = areaList(); const box = h("div");
+  const renaming = S.newArea && S.newArea.open && S.newArea.forId;
+  if (l.length) box.append(h("div", { class: "am" }, l.map((a, idx) => {
+    const n = itemsIn(a.id).length;
+    const row = h("div", { class: "amr" }, h("div", { class: "top" },
+      h("span", { class: "ic", text: a.icon || "📌" }),
+      h("span", { class: "nm", text: a.name }, h("small", { text: n ? plural(n, "item", "items") : "Empty" })),
+      h("button", { class: "btn sm ab", text: "▲", "aria-label": "Move " + a.name + " up", disabled: idx === 0 ? true : null, onclick: () => moveArea(a, -1) }),
+      h("button", { class: "btn sm ab", text: "▼", "aria-label": "Move " + a.name + " down", disabled: idx === l.length - 1 ? true : null, onclick: () => moveArea(a, 1) }),
+      h("button", { class: "btn sm ab", text: "✏️", "aria-label": "Rename " + a.name, onclick: () => { S.areaDel = null; S.newArea = { open: true, name: a.name, icon: a.icon || "📌", forId: a.id }; render(); } }),
+      h("button", { class: "btn sm ab warn", text: "✕", "aria-label": "Remove " + a.name, onclick: () => {
+        S.newArea = null;
+        if (!itemsIn(a.id).length) { removeArea(a); persist(); render(); return toast(a.name + " removed."); }
+        S.areaDel = { id: a.id, to: "" }; render();
+      } })));
+    if (S.newArea && S.newArea.open && S.newArea.forId === a.id) row.append(areaForm(a));
+    if (S.areaDel && S.areaDel.id === a.id) row.append(deletePanel(a));
+    return row;
+  })));
+  else box.append(h("p", { class: "muted small", text: "No areas yet." }));
+  box.append(h("p", { class: "muted small", style: "margin:10px 0 0", text: "Quick add or remove (✓ = in use):" }), suggestChips());
+  if (!renaming) box.append(areaForm());
   return box;
 }
 function areaForm(existing) {
@@ -1048,11 +1128,10 @@ function vArea() {
       h("button", { class: "btn", text: "Save -ref.md", onclick: () => saveFile(slugify(a.name) + "-ref.md", refMd(a.name, its), "text/markdown;charset=utf-8") }))));
 
   box.append(h("h2", { text: "Area settings" }), areaForm(a));
-  box.append(h("div", { class: "row", style: "margin-top:12px" },
-    confirmBtn("da-" + a.id, "Delete area", "Tap again: deletes " + plural(its.length, "item", "items") + " and photos", async () => {
-      for (const i of its) { for (const p of arr(i.photos)) await dropFile(p); delete R().items[i.id]; }
-      delete R().areas[a.id]; S.newArea = null; persist(); back("refs"); toast("Area deleted.");
-    })));
+  if (S.areaDel && S.areaDel.id === a.id) box.append(h("div", { class: "panel", style: "margin-top:12px" }, deletePanel(a)));
+  else box.append(h("div", { class: "row", style: "margin-top:12px" },
+    its.length ? h("button", { class: "btn warn", text: "Remove area…", onclick: () => { S.areaDel = { id: a.id, to: "" }; render(); } })
+      : confirmBtn("da-" + a.id, "Remove area", "Tap again to remove", async () => { await removeArea(a); persist(); back("refs"); toast(a.name + " removed."); })));
   return box;
 }
 
@@ -1523,7 +1602,7 @@ async function mergeBackup(data) {
   for (const ba of Object.values(br.areas || {})) {
     if (!ba || !ba.name) continue;
     const ex = R().areas[ba.id] || findArea(ba.name);
-    if (ex) { amap[ba.id] = ex.id; if (String(ba.updatedAt || "") > String(ex.updatedAt || "") && !(findArea(ba.name) && findArea(ba.name).id !== ex.id)) { ex.name = ba.name; ex.icon = ba.icon; ex.updatedAt = ba.updatedAt; } }
+    if (ex) { amap[ba.id] = ex.id; if (String(ba.updatedAt || "") > String(ex.updatedAt || "") && !(findArea(ba.name) && findArea(ba.name).id !== ex.id)) { ex.name = ba.name; ex.icon = ba.icon; if (ba.order != null) ex.order = ba.order; ex.updatedAt = ba.updatedAt; } }
     else { const id = ba.id || "a" + uid(); R().areas[id] = Object.assign({}, ba, { id }); amap[ba.id] = id; }
   }
   const photos = data.photos || {};
@@ -1557,6 +1636,10 @@ function vMore() {
 
   box.append(h("h2", { text: "Appearance" }));
   box.append(h("div", { class: "row" }, ["dark", "light"].map(th => h("button", { class: "btn" + (st.theme === th ? " primary" : ""), text: th === "dark" ? "Dark" : "Light", onclick: () => { st.theme = th; applyTheme(); persist(); render(); } }))));
+
+  box.append(h("h2", { text: "📌 Areas (References)" }));
+  box.append(h("p", { class: "muted small", text: "Add, rename, reorder or remove areas. Removing an area that has items lets you move them first." }));
+  box.append(areaManager());
 
   box.append(h("h2", { text: "PIN lock" }));
   box.append(h("p", { class: "muted small", text: st.pinHash ? "PIN is on. It locks the whole app — Learn & Explore and References. Triple-tap the title to lock now." : "Locks the whole app — Learn & Explore and References. Keeps casual eyes out; it isn't encryption." }));
